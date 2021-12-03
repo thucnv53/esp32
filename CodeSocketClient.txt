@@ -6,10 +6,10 @@
 //Thư viện giao tiếp WIFI
 #include <WiFi.h>
 
-const char* ssid = "TenWifi";
+const char* ssid = "Ten Wifi";
 const char* password = "Password";
 const uint16_t port = 8000;             //port
-const char * host = "192.168.1.100";    //địa chỉ ip của máy server
+const char * host = "10.10.70.245";    //địa chỉ ip của máy server
 WiFiClient client;
 
 //LED
@@ -25,6 +25,7 @@ WiFiClient client;
 
 float temperature = 0;
 float humidity = 0;
+long lastTime = 0;
 
 typedef union __packed
 {
@@ -158,30 +159,32 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  //Đọc giá trị nhiệt độ
-  temperature = temperatureSensorRead();
-  //Đọc giá trị độ ẩm
-  humidity = humiditySensorRead();
-  //Truyền lên máy tính thông qua cổng COM
-  Serial.printf("Temperature: %f \r\nHumidity: %f\r\n", temperature, humidity);
-  //Ngoài ra, có  thể đọc nhiệt độ của chip esp32
-  Serial.printf("Temperature of ESP32 Core: %f\r\n", temperatureRead());
+  if (millis() - lastTime > 2000) {
+    lastTime = millis();
+    //Đọc giá trị nhiệt độ
+    temperature = temperatureSensorRead();
+    //Đọc giá trị độ ẩm
+    humidity = humiditySensorRead();
+    //Truyền lên máy tính thông qua cổng COM
+    Serial.printf("Temperature: %f \r\nHumidity: %f\r\n", temperature, humidity);
+    //Ngoài ra, có  thể đọc nhiệt độ của chip esp32
+    Serial.printf("Temperature of ESP32 Core: %f\r\n", temperatureRead());
 
+    if (client.connected()) {
+      //Gửi dữ liệu cảm biến lên server
+      client.printf("Temperature: %f \r\nHumidity: %f\r\n", temperature, humidity);
+    }
+  }
   
-  if (client.connected()) {
-    //Gửi dữ liệu cảm biến lên server
-    client.printf("Temperature: %f \r\nHumidity: %f\r\n", temperature, humidity);
-
-    //Nhận dữ liệu từ server
+  //Nhận dữ liệu từ server
+  if (client.connected()) { 
     while (client.available() > 0) {
       char c = client.read();
-      //Serial.print(c);  //truyền qua cổng COM để debug
+      Serial.print(c);  //truyền qua cổng COM để debug
       //Nếu nhận được ký tự b thì bật đèn LED
       if (c == 'b') digitalWrite(LED, HIGH);
       //Nếu nhận được ký tự t thì tắt đèn LED
       if (c == 't') digitalWrite(LED, LOW);
     }
   }
-
-  delay(1000);
 }
