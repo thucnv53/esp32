@@ -1,0 +1,134 @@
+#include <Arduino.h>
+
+//Thư viện giao tiếp I2C
+#include <Wire.h>
+
+//Địa chỉ I2C của các mạch cảm biến
+#define HUMIDITY_ADDR     0x11
+#define TEMPERATURE_ADDR  0x12
+#define COLOR_SOUND_ADDR  0x13
+
+//Độ dài của frame truyền thông giữa mạch cảm biến và ESP32
+#define MSG_LENGTH 16
+
+float temperature = 0;
+float humidity = 0;
+
+typedef union __packed
+{
+    float value;
+    uint8_t bytes[4];
+} Long_t;
+
+/**
+ * @brief frame truyen doc ban tin cua cam bien nhiet do
+ * ____________________________________________________________________________
+ * | start | temperature |  chechsum | stop |
+ * |   [        4 byte  |     1byte  |   ]  |
+ *
+ */
+typedef union
+{
+    __packed struct data_tem
+    {
+        uint8_t start;
+        Long_t temperature;
+        uint8_t checksum;
+        uint8_t stop;
+        uint8_t padding[MSG_LENGTH - 7];
+    } data;
+    uint8_t raw[MSG_LENGTH];
+} data_temperature_t;
+
+/**
+ * @brief frame truyen doc ban tin cua cam bien nhiet do
+ * __________________________________________________________________________
+ * | start | Humidity | chechsum | stop |
+ * |   [   |  4 byte  |  1byte  |   ]  |
+ *
+ */
+typedef union
+{
+    __packed struct data_hum
+    {
+        uint8_t start;
+        Long_t humidity;
+        uint8_t checksum;
+        uint8_t stop;
+        uint8_t padding[MSG_LENGTH - 7];
+    } data;
+    uint8_t raw[MSG_LENGTH];
+} data_humidity_t;
+
+/**
+ * @brief frame truyen doc ban tin cua cam bien nhiet do
+ * _____________________________________________________________________________________________
+ * | start |   Color  |  sound  |chechsum | stop |
+ * |   [   |  3 byte  |   1byte |  1byte  |   ]  |
+ *
+    */
+typedef union
+{
+    __packed struct data_color
+    {
+        uint8_t start;
+        uint8_t color_r;
+        uint8_t color_g;
+        uint8_t color_b;
+        uint8_t sound;
+        uint8_t checksum;
+        uint8_t stop;
+        uint8_t padding[MSG_LENGTH - 7];
+    } data;
+    uint8_t raw[MSG_LENGTH];
+} data_sound_color_t;
+
+static uint8_t checksum(uint8_t *pData, uint16_t length)
+{
+    uint8_t res = 0x00;
+    for (uint16_t i = 0; i < length; i++)
+    {
+        res += pData[i];
+    }
+    res = res & 0xFF;
+    return res;
+}
+
+float temperatureSensorRead(void) {
+  data_temperature_t temp_str;
+  Wire.requestFrom(TEMPERATURE_ADDR, MSG_LENGTH);
+  Wire.readBytes(&temp_str.raw[0], MSG_LENGTH);
+  float temp = temp_str.data.temperature.value;
+  return temp;
+}
+
+float humiditySensorRead(void) {
+  data_humidity_t humi_str;
+  Wire.requestFrom(HUMIDITY_ADDR, MSG_LENGTH);
+  Wire.readBytes(&humi_str.raw[0], MSG_LENGTH);
+  float humi = humi_str.data.humidity.value;
+  return humi;
+}
+
+void setup() {
+  // put your setup code here, to run once:
+
+  //Khởi tạo giao tiếp Serial, tốc độ 9600
+  Serial.begin(9600);
+
+  //Khởi tạo giao tiếp I2C, chế độ master
+  Wire.begin();
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  //Đọc giá trị nhiệt độ
+  temperature = temperatureSensorRead();
+  //Đọc giá trị độ ẩm
+  humidity = humiditySensorRead();
+  //Truyền lên máy tính thông qua cổng COM
+  Serial.printf("Temperature: %f \r\nHumidity: %f\r\n", temperature, humidity);
+  //Ngoài ra, có  thể đọc nhiệt độ của chip esp32
+  Serial.printf("Temperature of ESP32 Core: %f\r\n", temperatureRead());
+  delay(1000);
+}
