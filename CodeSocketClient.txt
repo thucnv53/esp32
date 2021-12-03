@@ -130,6 +130,9 @@ void setup() {
 
   //Khởi tạo giao tiếp I2C, chế độ master
   Wire.begin();
+  
+  //Set chân 2 là output, (chân kết nối với LED)
+  pinMode(LED, OUTPUT);
 
   //Kết nối Wifi
   WiFi.begin(ssid, password);
