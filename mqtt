@@ -9,9 +9,9 @@
 //Thư viện giao tiếp MQTT
 #include <PubSubClient.h>
 
-const char* ssid = "TenWifi";
+const char* ssid = "Ten Wifi";
 const char* password = "Password";
-const char* mqtt_server = "YOUR_MQTT_BROKER_IP_ADDRESS";
+const char* mqtt_server = "broker.hivemq.com";
 
 WiFiClient wifiClient;
 PubSubClient client(wifiClient);
@@ -225,7 +225,7 @@ void loop() {
 
     //Chuyển giá trị nhiệt độ sang dạng string (mảng char) để truyền đi
     char tempString[8];
-    sprintf(tempString, "%f", temperature);
+    sprintf(tempString, "%.2f", temperature);
     //Gửi dữ liệu đi
     client.publish("UNETITemperature", tempString);
   }
