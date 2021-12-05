@@ -86,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.w("Debug",mqttMessage.toString());
 
                 if (topic.equalsIgnoreCase("UNETITemperature")) {
-
+                    tvTemperature.setText(mqttMessage.toString());
                 }
             }
 
